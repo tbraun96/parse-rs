@@ -1,0 +1,28 @@
+# Git files
+.git
+.gitignore
+
+# Node modules (Root and Subdirs)
+**/node_modules
+
+# Next.js build files (Root and Subdirs)
+**/.next
+**/out
+
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# Env files (handle these securely, e.g., via docker-compose)
+# .env*
+!.env.example
+
+# Logs and temporary files
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/*.env.local
+
+# Rust target directory (Root and Subdirs)
+**/target
+**/target_ide
