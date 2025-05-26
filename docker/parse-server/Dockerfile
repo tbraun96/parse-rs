@@ -26,10 +26,20 @@ WORKDIR /parse-server
 # Copy the initialization and test scripts as the parse user
 COPY --chown=parse:parse create-admin.js .
 COPY --chown=parse:parse test-connection.js .
+COPY --chown=parse:parse cloud/main.js .
 
 # Acquire the env var PARSE_SERVER_PORT from the docker-compose.yml
 ARG PARSE_SERVER_PORT
 ENV PARSE_SERVER_PORT=${PARSE_SERVER_PORT}
+
+ARG PARSE_SERVER_CLOUD
+ENV PARSE_SERVER_CLOUD=${PARSE_SERVER_CLOUD}
+
+ARG PARSE_SERVER_REST_API_KEY
+ENV PARSE_SERVER_REST_API_KEY=${PARSE_SERVER_REST_API_KEY}
+
+ARG PARSE_SERVER_JAVASCRIPT_KEY
+ENV PARSE_SERVER_JAVASCRIPT_KEY=${PARSE_SERVER_JAVASCRIPT_KEY}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 

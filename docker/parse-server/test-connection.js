@@ -3,6 +3,8 @@ const Parse = require('parse/node');
 // Use environment variables provided by Docker Compose/container
 const APP_ID = process.env.PARSE_SERVER_APPLICATION_ID;
 const MASTER_KEY = process.env.PARSE_SERVER_MASTER_KEY;
+const REST_API_KEY = process.env.PARSE_SERVER_REST_API_KEY;
+const JAVASCRIPT_KEY = process.env.PARSE_SERVER_JAVASCRIPT_KEY;
 const PARSE_PORT = process.env.PARSE_SERVER_PORT;
 if (!PARSE_PORT) {
     console.error('Error: PARSE_SERVER_PORT is not set');
@@ -12,19 +14,25 @@ const SERVER_URL = `http://0.0.0.0:${PARSE_PORT}/parse`; // Target localhost ins
 const TEST_USERNAME = process.env.ADMIN_USERNAME;
 const TEST_PASSWORD = process.env.ADMIN_PASSWORD;
 
+// Initialize Parse SDK
+if (APP_ID && JAVASCRIPT_KEY && SERVER_URL && MASTER_KEY) { 
+    Parse.initialize(APP_ID, JAVASCRIPT_KEY, MASTER_KEY); 
+    Parse.serverURL = SERVER_URL;
+    console.log('Parse SDK initialized with App ID, JavaScript Key, and Master Key.');
+} else {
+    console.error('Error: Missing APP_ID, JAVASCRIPT_KEY, MASTER_KEY, or SERVER_URL for Parse SDK initialization.');
+    process.exit(1); 
+}
+
 async function testParseConnection() {
   console.log('Testing Parse Server connection...');
   
-  if (!APP_ID || !MASTER_KEY || !SERVER_URL || !TEST_USERNAME || !TEST_PASSWORD) {
+  if (!APP_ID || !MASTER_KEY || !SERVER_URL || !TEST_USERNAME || !TEST_PASSWORD || !REST_API_KEY || !JAVASCRIPT_KEY) { 
     console.error('Error: Missing required environment variables for connection test script.');
     process.exit(1);
   }
 
   try {
-    // Initialize Parse
-    Parse.initialize(APP_ID, null, MASTER_KEY); // Use Master Key for initialization tests
-    Parse.serverURL = SERVER_URL;
-    
     console.log(`Initialized Parse with:
 - App ID: ${APP_ID}
 - Server URL: ${SERVER_URL}`);

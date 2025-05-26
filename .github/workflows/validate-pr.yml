@@ -1,0 +1,71 @@
+name: Validate PR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint_and_format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Run cargo clippy
+        run: cargo clippy --tests -- -D warnings
+
+      - name: Run cargo fmt check
+        run: cargo fmt -- --check
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Parse Server for tests
+        run: |
+          echo "Starting Parse Server via Docker Compose..."
+          # If you have a .env.example for server config, you might copy it:
+          # cp .env.example .env 
+          docker compose up -d
+
+      - name: Wait for Parse Server
+        run: |
+          echo "Waiting for Parse Server to initialize..."
+          sleep 20 # Adjust as needed, or implement a proper health check script
+          echo "Parse Server should be up. Checking Docker logs:"
+          docker compose logs parse-server || echo "Could not get parse-server logs (container might not be named 'parse-server')"
+          docker compose logs mongo || echo "Could not get mongo logs (container might not be named 'mongo')"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run cargo test
+        env:
+          PARSE_SERVER_URL: http://localhost:1338/parse
+          PARSE_APP_ID: myAppId
+          PARSE_MASTER_KEY: myMasterKey
+          PARSE_JAVASCRIPT_KEY: myJavascriptKey
+          PARSE_REST_API_KEY: myRestApiKey
+          RUST_BACKTRACE: "1"
+        run: cargo test
+
+      - name: Tear down Parse Server
+        if: always() # Ensure this runs even if tests fail
+        run: |
+          echo "Tearing down Parse Server..."
+          docker compose down

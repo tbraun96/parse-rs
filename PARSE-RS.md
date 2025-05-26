@@ -56,6 +56,7 @@ user-related operations.
 It will likely return a `ParseUser` struct or a similar handler.
 
 * **`ParseUser` struct:** Represents a Parse User object.
+* **`ParseSession` struct:** Represents a Parse Session object, containing session details like `sessionToken`, `user` (pointer), `createdWith`, `expiresAt`, `installationId`.
 * **Methods (on a handler returned by `parse.user()` or `ParseUser` static
   methods associated with a client instance):**
   * `signup(username: &str, password: &str, email: Option<&str>,
@@ -71,7 +72,13 @@ It will likely return a `ParseUser` struct or a similar handler.
   * `request_password_reset(email: &str) -> Result<(), ParseError>`
   * `is_authenticated() -> bool`
   * `get_session_token() -> Option<String>`
-* **Session Management:** Session tokens will be managed by the `Parse` client
+* **Session Management (on a handler returned by `parse.session()`):**
+  * `get_current_session() -> Result<ParseSession, ParseError>`: Retrieves the current session details for the authenticated user.
+  * `get_all_sessions(query_params: Option<&str>) -> Result<Vec<ParseSession>, ParseError>`: Retrieves all sessions, optionally filtered by query parameters. Requires master key.
+  * `get_session_by_object_id(object_id: &str) -> Result<ParseSession, ParseError>`: Retrieves a specific session by its object ID. Requires master key.
+  * `update_session_by_object_id(object_id: &str, data: &serde_json::Value) -> Result<ParseDate, ParseError>`: Updates a specific session. Requires master key.
+  * `delete_session_by_object_id(object_id: &str) -> Result<(), ParseError>`: Deletes a specific session. Requires master key.
+* **Session Token Management:** Session tokens will be managed by the `Parse` client
   instance. Initially, this will be in-memory.
 
 ### 3.2. Object Management (`ParseObject`)
@@ -111,8 +118,10 @@ For finding and retrieving `ParseObject`s based on various criteria.
 * **`ParseQuery` struct:**
   * `ParseQuery::new(class_name: &str) -> Self`
 * **Methods:**
-  * Constraint methods: `equalTo`, `notEqualTo`, `greaterThan`, `lessThan`,
-    `containedIn`, `startsWith`, `exists`, `doesNotExist`, etc.
+  * Constraint methods:
+    * `equalTo`, `notEqualTo`
+    * `greaterThan`, `greaterThanOrEqualTo`
+    * `lessThan`, `lessThanOrEqualTo`
   * `find() -> Result<Vec<ParseObject>, ParseError>`: Retrieves all objects
     matching the query.
   * `first() -> Result<Option<ParseObject>, ParseError>`: Retrieves the first
@@ -122,8 +131,11 @@ For finding and retrieving `ParseObject`s based on various criteria.
   * `count() -> Result<u64, ParseError>`: Counts objects matching the query.
   * Pagination: `limit(count: usize)`, `skip(count: usize)`.
   * Sorting: `orderByAscending(key: &str)`, `orderByDescending(key: &str)`.
-  * Relational queries: `include(key: &str)` (for Pointers),
-    `select(keys: Vec<&str>)`.
+  * Relational queries:
+    * `include(key: &str)`: Include the full data of a pointer field.
+    * `include(keys: &[&str])`: Include the full data of multiple pointer fields.
+    * `select(key: &str)`: Select only specific field(s) to be returned.
+    * `select(keys: &[&str])`: Select only specific fields to be returned.
 
 ### 3.4. Cloud Code (`parse.cloud()`)
 
@@ -152,6 +164,7 @@ For calling Parse Cloud Code functions.
   and response bodies, and for converting data to/from Rust structs.
 * Custom `ParseDate`, `ParseGeoPoint`, `ParseFile`, `ParsePointer`,
   `ParseRelation` types might be needed for proper serialization and type safety.
+* Successfully implemented custom deserialization logic for `ParseDate` using `serde`'s `deserialize_with`. This has been applied to `ParseObject`, `ParseUser`, `ParseRole`, and their associated response structs (e.g., `CreateObjectResponse`, `SignupResponse`, `CreateRoleResponse`), resolving previous test failures related to date string parsing from the Parse server.
 
 ## 6. Proposed Project Structure
 
@@ -173,8 +186,12 @@ parse-rs/
     ├── query.rs       # ParseQuery struct, querying methods
     ├── cloud.rs       # Cloud Code functions
     ├── file.rs        # ParseFile struct and methods (Stretch goal for initial phases)
-    └── acl.rs         # ParseACL struct and methods (Future)
-    └── config.rs      # ParseConfig (Future)
+    ├── acl.rs         # ParseACL struct and methods (Future)
+    ├── config.rs      # ParseConfig (Future)
+    ├── roles.rs       # ParseRole struct and methods (Future)
+    ├── installation.rs # ParseInstallation struct and methods (Future)
+    ├── push.rs        # Push Notification methods (Future)
+    ├── schema.rs      # Schema management methods (Future)
     └── util.rs        # Common utility functions, if any
 ```
 
@@ -185,81 +202,176 @@ parse-rs/
 * [x] Setup project structure, `Cargo.toml` with dependencies (`tokio`,
   `reqwest`, `serde`, `serde_json`, `thiserror`, `url`).
 * [x] Define `ParseError` enum (`src/error.rs`).
-* [ ] Implement `Parse` client struct and `Parse::new()` (`src/lib.rs` or
+* [x] Implement `Parse` client struct and `Parse::new()` (`src/lib.rs` or
   `src/client.rs`).
-* [ ] Implement internal HTTP request sending logic (POST, GET, PUT, DELETE)
+* [x] Implement internal HTTP request sending logic (POST, GET, PUT, DELETE)
   with correct headers and error parsing (`src/client.rs`).
 * [x] Define basic `ParseDate` type for `createdAt`, `updatedAt`
   (`src/types/date.rs`).
-* [ ] Implement `ParseUser` struct (`src/user.rs`).
-* [ ] Implement `ParseUser` methods: `signup`, `login`.
-* [ ] Implement session token handling within the `Parse` client for
-  authenticated requests.
-* [ ] Implement `ParseUser` methods: `logout`, `become`, `current_user`
-  (in-memory), `is_authenticated`, `get_session_token`.
-* [ ] Basic integration tests for User Authentication against a live Parse
-  Server.
+* [x] Implement `ParseUser` struct (`src/user.rs`).
+* [x] Implement `ParseUser` methods: `signup`, `login`.
+* [x] Implement `ParseUser` methods: `logout`, `become`, `current_user`, `request_password_reset`.
+* [x] Implement basic session token handling in `Parse` client.
+* [x] Define `ParseSession` struct and associated response types.
+* [x] Implement `ParseSession` methods: `get_current_session` (me), `get_all_sessions`, `get_session_by_object_id`, `update_session_by_object_id`, `delete_session_by_object_id`.
 
 ### Phase 2: Object Management
 
-* [ ] Define `ParseObject` struct (`src/object.rs`), initially using
+* [x] Define `ParseObject` struct (`src/object.rs`), initially using
   `serde_json::Value` for custom fields.
-* [ ] Implement `ParseObject::new(class_name: &str)`.
-* [ ] Implement `ParseObject::set()` and `ParseObject::get()` for basic data
+* [x] Implement `ParseObject::new(class_name: &str)`.
+* [x] Implement `ParseObject::set()` and `ParseObject::get()` for basic data
   types.
-* [ ] Implement `ParseObject::save()` (handling both create and update).
-* [ ] Implement `ParseObject::fetch()`.
-* [ ] Implement `ParseObject::delete()`.
-* [ ] Handle `objectId`, `createdAt`, `updatedAt` fields automatically.
-* [ ] Basic integration tests for Object CRUD operations.
+* [x] Implement `ParseObject::save()` (handling both create and update).
+* [x] Implement `ParseObject::fetch()`.
+* [x] Implement `ParseObject::delete()`.
+* [x] Handle `objectId`, `createdAt`, `updatedAt` fields automatically.
+* [x] Basic integration tests for Object CRUD operations.
 
 ### Phase 3: Querying
 
-* [ ] Define `ParseQuery` struct (`src/query.rs`).
-* [ ] Implement `ParseQuery::new(class_name: &str)`.
-* [ ] Implement basic constraint methods: `equalTo`, `notEqualTo`,
-  `greaterThan`, `lessThan`.
-* [ ] Implement `ParseQuery::find()`.
-* [ ] Implement `ParseQuery::first()`.
-* [ ] Implement `ParseQuery::get(object_id: &str)`.
-* [ ] Implement `limit()`, `skip()`, `orderByAscending()`,
-  `orderByDescending()`.
-* [ ] Basic integration tests for Querying.
+* [x] Define `ParseQuery` struct (`src/query.rs`).
+* [x] Implement `ParseQuery::new(class_name: &str)`.
+* [x] Implement basic constraint methods:
+  * `equalTo`, `notEqualTo`
+  * `greaterThan`, `greaterThanOrEqualTo`
+  * `lessThan`, `lessThanOrEqualTo`
+* [x] Implement `ParseQuery::find()`.
+* [x] Implement `ParseQuery::first()`.
+* [x] Implement `ParseQuery::get(object_id: &str)`.
+* [x] Implement `ParseQuery::count()`.
+* [x] Implement pagination: `limit(count: usize)`, `skip(count: usize)`.
+* [x] Implement sorting: `orderByAscending(key: &str)`, `orderByDescending(key: &str)`.
+* [x] Basic integration tests for Querying.
+* [x] Implement `ParseQuery` relational queries:
+  * `include(key: &str)`
+  * `include(keys: &[&str])`
+  * `select(key: &str)`
+  * `select(keys: &[&str])`
+* [x] Implement `ParseQuery` advanced constraints:
+  * [x] `containedIn`
+  * [x] `notContainedIn`
+  * [x] `containsAll`
+  * [x] `exists`, `doesNotExist`
+  * [x] `startsWith`, `endsWith`, `contains`, `matchesRegex`
+* [x] Implement `ParseQuery` aggregate queries:
+  * [x] `aggregate`
+* [x] Implement `ParseQuery` distinct values:
+  * [x] `distinct`
+* [ ] Implement `ParseQuery` geospatial queries (SKIP):
+  * `nearSphere`, `withinGeoBox`
+* [x] Implement `ParseQuery` full-text search:
+  * [x] `search`
 
 ### Phase 4: Cloud Code & Advanced Features
 
-* [ ] Implement `parse.cloud().run()` functionality (`src/cloud.rs`).
-* [ ] Integration tests for Cloud Code.
-* [ ] Implement `ParseObject` field operations: `increment`, `decrement`,
+* [x] Implement `parse.cloud().run()` functionality (`src/cloud.rs`).
+* [x] Integration tests for Cloud Code.
+* [x] Implement `ParseObject` field operations: `increment`, `decrement`,
   `add_to_array`, `add_unique_to_array`, `remove_from_array`.
-* [ ] Implement `ParseQuery` advanced constraints: `containedIn`,
-  `notContainedIn`, `exists`, `doesNotExist`, `startsWith`, `endsWith`,
-  `matchesRegex`.
-* [ ] Implement `ParseQuery` relational queries: `include(key: &str)`,
-  `select(keys: Vec<&str>)`.
-* [ ] Define and integrate `ParsePointer` type (`src/types/pointer.rs`).
 
 ### Phase 5: Refinements, Files, and Documentation
 
-* [ ] Implement `ParseFile` functionality (`src/file.rs`): creating from data,
+* [X] Implement `ParseFile` functionality (`src/file.rs`): creating from data,
   saving (uploading), getting URL.
-* [ ] Integration tests for `ParseFile`.
+* [X] Integration tests for `ParseFile`.
 * [ ] Add comprehensive public API documentation (doc comments).
 * [ ] Create examples for common use cases in `README.md` or an `examples/`
   directory.
-* [ ] Refine error handling, type safety, and overall API ergonomics.
 * [ ] Consider advanced types/features:
-  * [ ] `ParseGeoPoint` (`src/types/geopoint.rs`) and geo queries.
-  * [ ] `ParseRelation`.
-  * [ ] `ParseACL` (`src/acl.rs`).
-  * [ ] `ParseRole`.
-  * [ ] `ParseConfig`.
-* [ ] Publish initial version to `crates.io`.
+  * [ ] `ParseInstallation` (for device registration, crucial for push notifications).
+  * [ ] `ParsePush` (for sending push notifications).
+  * [ ] `ParseSchema` (for programmatically managing class schemas).
 
-## 8. Development Environment & Testing
+## 8. Development Updates
+
+### 2025-05-24: Test Utilities Refactor & Bug Fixes
+
+* **Test Utilities Refactoring**:
+  * Encapsulated shared test functions and structs within `tests/query_test_utils.rs` into a public module named `shared`.
+  * Updated all integration test files (`tests/query_*_integration.rs`) to use the new `shared` module (e.g., `use super::query_test_utils::shared::*;`), resolving previous scope and compilation errors.
+* **Bug Fixes**:
+  * **Aggregate Query Deserialization**: Fixed an issue where `test_aggregate_group_by_player_and_sum_scores` was failing due to a mismatch between the expected `_id` field and the actual `objectId` field returned by the Parse Server for grouped results. The `GroupedResult` struct in `tests/query_aggregate_ops_integration.rs` was updated accordingly. A memory was created regarding this server behavior.
+  * **Count Query Parameter**: Resolved a bug in `ParseQuery::count()` where the `count=1` parameter was incorrectly being added to the `where` clause of the query. It's now correctly added as a top-level URL parameter, fixing deserialization failures (e.g., in `basic_ops_tests::test_query_initial_setup_and_find_empty`) where the server wouldn't return the `count` field.
+  * **Code Cleanup**: Removed several unused import warnings across the test utilities and source files.
+* **Outcome**: All integration tests are currently passing, and the test utility structure is more robust.
+
+## 9. Development Environment & Testing
 
 * A running Parse Server instance is required for integration testing.
-  * Example Docker setup: `docker run -d --name parse-server-ephemeral -p ${PARSE_SERVER_PORT}:${PARSE_SERVER_PORT} -e
-    APP_ID=myAppId -e MASTER_KEY=myMasterKey -e JAVASCRIPT_KEY=myJavascriptKey
-    -e REST_API_KEY=myRestApiKey parseplatform/parse-server`
+
+* Example Docker setup:
+
+```bash
+docker run -d \
+  --name parse-server-ephemeral \
+  -p ${PARSE_SERVER_PORT}:${PARSE_SERVER_PORT} \
+  -e APP_ID=myAppId \
+  -e MASTER_KEY=myMasterKey \
+  -e JAVASCRIPT_KEY=myJavascriptKey \
+  -e REST_API_KEY=myRestApiKey \
+  parseplatform/parse-server
+```
+
 * Tests should cover all public API methods and various scenarios.
+
+## 10. Extended Phase - Future API Coverage
+
+Beyond the immediate to-do list, the following Parse REST API features are candidates for future implementation to provide more comprehensive SDK coverage:
+
+[x] **Sessions API**: (Finished)
+
+* Direct management of user sessions (get current, query, delete specific sessions).
+* Endpoints: `/parse/sessions`, `/parse/sessions/me`, `/parse/sessions/<objectId>`.
+
+[ ] **User API Enhancements**:
+
+* `[ ] Verifying User Emails`
+* `[ ] Linking/Unlinking User Accounts (e.g., for social login, converting anonymous users)`
+
+[ ] **Roles API**:
+
+* `[ ] Full CRUD and management for Roles`
+  * `[ ] Creating Roles`
+  * `[ ] Retrieving Roles (by objectId, querying)`
+  * `[ ] Updating Roles (e.g., adding/removing users or other roles to a role's relations)`
+  * `[ ] Deleting Roles`
+
+[ ] **Analytics API**:
+
+* Tracking custom application events.
+* Endpoint: `/parse/events/<eventName>`.
+
+[ ] **Installations API**:
+
+* `[ ] Full CRUD for device installations`
+  * `[ ] Creating/Uploading Installation data`
+  * `[ ] Retrieving Installations (by objectId, querying)`
+  * `[ ] Updating Installations (e.g., channels, badge count, device token)`
+  * `[ ] Deleting Installations`
+
+[ ] **Push Notifications API**:
+
+* `[ ] Sending push notifications (to channels, segments, advanced targeting queries)`
+* `[ ] Scheduling pushes`
+* `[ ] Localizing pushes`
+
+[ ] **Cloud Code Jobs (Advanced)**:
+
+* While `ParseCloud` covers calling functions, more advanced job management (e.g., status polling, specific job retrieval if API supports, triggering background jobs) could be added.
+
+[ ] **Schemas API**:
+
+* `[ ] Programmatic schema management`
+  * `[ ] Fetching all schemas / specific class schema`
+  * `[ ] Creating a new class schema`
+  * `[ ] Modifying a class schema (adding/removing fields, constraints - if supported by API)`
+  * `[ ] Deleting a class schema`
+
+[ ] **Hooks API**:
+
+* Programmatic management of Cloud Function and Trigger webhooks.
+* Endpoints: `/parse/hooks/functions`, `/parse/hooks/triggers`.
+
+---
+**Note**: This document is a living specification and will be updated as the project progresses.

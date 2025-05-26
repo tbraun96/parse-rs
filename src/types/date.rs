@@ -1,39 +1,42 @@
 // src/types/date.rs
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+/// Represents a Parse Date type, which includes timezone information.
+/// Parse stores dates in UTC.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ParseDate {
-    pub iso: String,
+    #[serde(rename = "__type")]
+    pub __type: String, // Should always be "Date"
+    pub iso: String, // ISO 8601 format, e.g., "YYYY-MM-DDTHH:MM:SS.MMMZ"
 }
 
 impl ParseDate {
-    pub fn new(iso_string: String) -> Self {
-        ParseDate { iso: iso_string }
+    /// Creates a new ParseDate from an ISO 8601 string.
+    /// Note: This does not validate the string format.
+    pub fn new(iso_string: impl Into<String>) -> Self {
+        ParseDate {
+            __type: "Date".to_string(),
+            iso: iso_string.into(),
+        }
     }
 
-    pub fn iso(&self) -> &str {
-        &self.iso
+    /// Creates a new ParseDate representing the current time in UTC.
+    pub fn now() -> Self {
+        Self::from_datetime(Utc::now())
     }
-}
 
-impl<'de> Deserialize<'de> for ParseDate {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        // Optionally, add validation here to ensure 's' is a valid ISO 8601 string
-        // For now, we assume the server sends valid strings.
-        Ok(ParseDate { iso: s })
+    /// Creates a new ParseDate from a chrono::DateTime<Utc> object.
+    pub fn from_datetime(dt: DateTime<Utc>) -> Self {
+        ParseDate {
+            __type: "Date".to_string(),
+            iso: dt.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        }
     }
-}
 
-impl Serialize for ParseDate {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.iso)
+    /// Attempts to parse the ISO string into a chrono::DateTime<Utc> object.
+    pub fn to_datetime(&self) -> Result<DateTime<Utc>, chrono::ParseError> {
+        DateTime::parse_from_rfc3339(&self.iso).map(|dt| dt.with_timezone(&Utc))
     }
 }

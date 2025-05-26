@@ -32,6 +32,8 @@ echo "Starting Parse Server in background..."
 node ./bin/parse-server \
     --appId ${PARSE_SERVER_APPLICATION_ID} \
     --masterKey ${PARSE_SERVER_MASTER_KEY} \
+    --restAPIKey ${PARSE_SERVER_REST_API_KEY} \
+    --javascriptKey ${PARSE_SERVER_JAVASCRIPT_KEY} \
     --databaseURI ${PARSE_SERVER_DATABASE_URI} \
     --port ${PARSE_SERVER_PORT} \
     --serverURL http://localhost:${PARSE_SERVER_PORT}/parse \
