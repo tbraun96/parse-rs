@@ -62,7 +62,7 @@ jobs:
           PARSE_JAVASCRIPT_KEY: myJavascriptKey
           PARSE_REST_API_KEY: myRestApiKey
           RUST_BACKTRACE: "1"
-        run: cargo test
+        run: cargo test -- --test-threads=1
 
       - name: Tear down Parse Server
         if: always() # Ensure this runs even if tests fail

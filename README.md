@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/parse-rs.svg?style=flat-square&logo=rust)](https://crates.io/crates/parse-rs)
 [![Docs.rs](https://img.shields.io/docsrs/parse-rs?style=flat-square&logo=rust)](https://docs.rs/parse-rs)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/tbraun96/parse-rs/validate-pr.yml?branch=main&style=flat-square&logo=github)](https://github.com/tbraun96/parse-rs/actions/workflows/validate-pr.yml)
-[![License](https://img.shields.io/crates/l/parse-rs.svg?style=flat-square)](./LICENSE)
+[![Validate PR](https://github.com/tbraun96/parse-rs/actions/workflows/validate-pr.yml/badge.svg)](https://github.com/tbraun96/parse-rs/actions/workflows/validate-pr.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
 A modern, asynchronous, and unofficial Rust SDK for interacting with [Parse Server](https://parseplatform.org/) backends. Effortlessly integrate your Rust applications with the powerful features of Parse.
 
