@@ -5,7 +5,7 @@
 [![Validate PR](https://github.com/tbraun96/parse-rs/actions/workflows/validate-pr.yml/badge.svg)](https://github.com/tbraun96/parse-rs/actions/workflows/validate-pr.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
-A modern, asynchronous, and unofficial Rust SDK for interacting with [Parse Server](https://parseplatform.org/) backends. Effortlessly integrate your Rust applications with the powerful features of Parse.
+A modern asynchronous Rust SDK for interacting with [Parse Server](https://parseplatform.org/) backends. Effortlessly integrate your Rust applications with the powerful features of Parse.
 
 ---
 
