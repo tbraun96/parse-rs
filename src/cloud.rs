@@ -9,7 +9,10 @@ struct CloudFunctionResponse<T> {
     result: T,
 }
 
-/// Handler for Parse Cloud Function operations.
+/// Provides methods for interacting with Parse Cloud Code functions.
+///
+/// An instance of `ParseCloud` is obtained by calling the [`cloud()`](crate::ParseClient::cloud)
+/// method on a `ParseClient` instance.
 #[derive(Debug)]
 pub struct ParseCloud<'a> {
     client: &'a ParseClient,

@@ -11,14 +11,67 @@ use reqwest::{Client, Method, Url};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-/// Enum to specify the type of authentication to use for a request.
+/// Specifies the type of authentication credentials to be used for an API request.
+///
+/// This enum helps determine which keys or tokens are prioritized when constructing
+/// the headers for a request to the Parse Server.
 pub enum AuthType {
+    /// Use the current session token. This is typically obtained after a user logs in.
+    /// If no session token is available, the request might fail or use other credentials
+    /// based on client configuration.
     SessionToken,
+    /// Use the Master Key. This key bypasses all ACLs and Class-Level Permissions.
+    /// It should be used sparingly and kept secure.
     MasterKey,
-    RestApiKey, // Or JavaScriptKey if REST API Key is not set
-    NoAuth,     // For public readable data or specific endpoints like login/signup
+    /// Use the REST API Key. If the REST API Key is not configured on the client,
+    /// it may fall back to using the JavaScript Key if that is configured.
+    /// This key is typically used for general API access from trusted server environments.
+    RestApiKey,
+    /// No specific authentication to be actively chosen for this request.
+    /// The request will rely on the default headers configured in the `ParseClient`
+    /// (e.g., Application ID, and potentially a pre-configured JavaScript Key or REST API Key if no Master Key was set globally).
+    /// This is suitable for operations that don't require user context or elevated privileges,
+    /// such as public data queries or user signup/login endpoints themselves.
+    NoAuth,
 }
 
+/// The main client for interacting with a Parse Server instance.
+///
+/// `ParseClient` handles the configuration of server connection details (URL, Application ID, API keys)
+/// and provides methods for making authenticated or unauthenticated requests to various Parse Server endpoints.
+/// It manages session tokens for authenticated users and uses an underlying `reqwest::Client` for HTTP communication.
+///
+/// Most operations are performed by calling methods directly on `ParseClient` or by obtaining specialized
+/// handles (like `ParseUserHandle`, `ParseSessionHandle`, `ParseCloud`) through methods on this client.
+///
+/// # Initialization
+///
+/// A `ParseClient` is typically created using the [`ParseClient::new()`] method, providing the server URL,
+/// Application ID, and any relevant API keys (JavaScript, REST, Master).
+///
+/// ```rust,no_run
+/// use parse_rs::ParseClient;
+/// # use parse_rs::ParseError;
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), ParseError> {
+/// let server_url = "http://localhost:1338/parse";
+/// let app_id = "myAppId";
+/// let master_key = "myMasterKey";
+///
+/// // Create a client instance with Master Key
+/// let mut client = ParseClient::new(
+///     server_url,
+///     app_id,
+///     None, // javascript_key
+///     None, // rest_api_key
+///     Some(master_key), // master_key
+/// ).await?;
+///
+/// // Client is now ready to be used
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct ParseClient {
     pub server_url: String, // Changed from Url to String
@@ -32,6 +85,71 @@ pub struct ParseClient {
 }
 
 impl ParseClient {
+    /// Creates a new `ParseClient` instance.
+    ///
+    /// This constructor initializes the client with the necessary credentials and configuration
+    /// to communicate with your Parse Server.
+    ///
+    /// # Arguments
+    ///
+    /// * `server_url`: The base URL of your Parse Server (e.g., `"http://localhost:1338/parse"`).
+    ///   The client will attempt to normalize this URL (e.g., ensure scheme, remove trailing `/parse` if present
+    ///   to derive the true server base for constructing endpoint paths).
+    /// * `app_id`: Your Parse Application ID. This is a required header for all requests.
+    /// * `javascript_key`: Optional. Your Parse JavaScript Key. If provided and `master_key` is not,
+    ///   this key will be included in requests by default, unless overridden by a session token or explicit master key usage.
+    /// * `rest_api_key`: Optional. Your Parse REST API Key. If provided and both `master_key` and `javascript_key` are not,
+    ///   this key will be included in requests by default. It's generally preferred over the JavaScript Key for server-to-server communication.
+    /// * `master_key`: Optional. Your Parse Master Key. If provided, this key will be included in requests by default,
+    ///   granting unrestricted access. Use with caution. It supersedes other keys for default authentication if present.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the new `ParseClient` instance if successful, or a `ParseError` if
+    /// configuration is invalid (e.g., invalid URL, invalid header values).
+    ///
+    /// # Key Precedence for Default Headers
+    /// When the client makes requests, the authentication key used in the default headers (when no session token is active
+    /// and `use_master_key` is not explicitly set for an operation) follows this precedence:
+    /// 1. Master Key (if provided at initialization)
+    /// 2. JavaScript Key (if provided and Master Key is not)
+    /// 3. REST API Key (if provided and neither Master Key nor JavaScript Key are)
+    ///
+    /// A session token, once set (e.g., after login), will typically take precedence over these default keys for most operations.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::ParseClient;
+    /// # use parse_rs::ParseError;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// let server_url = "http://localhost:1338/parse";
+    /// let app_id = "myAppId";
+    /// let js_key = "myJavascriptKey";
+    ///
+    /// // Initialize with JavaScript Key
+    /// let mut client_with_js_key = ParseClient::new(
+    ///     server_url,
+    ///     app_id,
+    ///     Some(js_key),
+    ///     None, // rest_api_key
+    ///     None, // master_key
+    /// ).await?;
+    ///
+    /// // Initialize with Master Key (will take precedence for default auth)
+    /// let master_key = "myMasterKey";
+    /// let mut client_with_master_key = ParseClient::new(
+    ///     server_url,
+    ///     app_id,
+    ///     Some(js_key), // JS key is also provided
+    ///     None,         // REST API key
+    ///     Some(master_key), // Master key will be used by default
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new(
         server_url: &str,
         app_id: &str,
@@ -122,30 +240,114 @@ impl ParseClient {
         })
     }
 
-    fn _set_session_token(&mut self, token: Option<String>) {
+    // Internal method to set or clear the session token.
+    pub(crate) fn _set_session_token(&mut self, token: Option<String>) {
         self.session_token = token;
     }
 
-    /// Returns the current session token, if any.
+    /// Returns the current session token, if one is set on the client.
+    ///
+    /// A session token is typically obtained after a user successfully logs in
+    /// and is used to authenticate subsequent requests for that user.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use parse_rs::{ParseClient, ParseError};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let mut client = ParseClient::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey")).await?;
+    /// // After a user logs in, the client might have a session token.
+    /// if let Some(token) = client.session_token() {
+    ///     println!("Current session token: {}", token);
+    /// } else {
+    ///     println!("No active session token.");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn session_token(&self) -> Option<&str> {
         self.session_token.as_deref()
     }
 
-    /// Checks if the client is currently authenticated (has a session token).
+    /// Checks if the client currently has an active session token.
+    ///
+    /// This is a convenience method equivalent to `client.session_token().is_some()`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// # use parse_rs::{ParseClient, ParseError};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let mut client = ParseClient::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey")).await?;
+    /// if client.is_authenticated() {
+    ///     println!("Client has an active session.");
+    /// } else {
+    ///     println!("Client does not have an active session.");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn is_authenticated(&self) -> bool {
         self.session_token.is_some()
     }
 
     /// Uploads a file to the Parse Server.
     ///
+    /// This method sends the raw byte data of a file to the Parse Server, which then stores it
+    /// and returns a `FileField` containing the URL and name of the stored file. This `FileField`
+    /// can then be associated with a `ParseObject`.
+    ///
+    /// Note: File uploads require the Master Key to be configured on the `ParseClient` or for the
+    /// `use_master_key` parameter in the underlying `_request_file_upload` to be true (which is the default for this public method).
+    ///
     /// # Arguments
-    /// * `file_name`: The desired name for the file on the server.
-    /// * `data`: The raw byte data of the file.
-    /// * `mime_type`: The MIME type of the file (e.g., "image/jpeg").
+    ///
+    /// * `file_name`: A string slice representing the desired name for the file on the server (e.g., `"photo.jpg"`).
+    /// * `data`: A `Vec<u8>` containing the raw byte data of the file.
+    /// * `mime_type`: A string slice representing the MIME type of the file (e.g., `"image/jpeg"`, `"application/pdf"`).
     ///
     /// # Returns
-    /// A `Result` containing a `FileField` struct with the name and URL of the uploaded file,
-    /// or a `ParseError` if the upload fails.
+    ///
+    /// A `Result` containing a `FileField` on success, which includes the `name` and `url` of the uploaded file.
+    /// Returns a `ParseError` if the upload fails due to network issues, server errors, incorrect permissions,
+    /// or misconfiguration.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError, FileField, ParseObject, types::Value};
+    /// use std::collections::HashMap;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
+    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    ///
+    /// let file_name = "profile.png";
+    /// let file_data: Vec<u8> = vec![0, 1, 2, 3, 4, 5]; // Example byte data
+    /// let mime_type = "image/png";
+    ///
+    /// // Upload the file
+    /// let file_field: FileField = client.upload_file(file_name, file_data, mime_type).await?;
+    ///
+    /// println!("File uploaded successfully: Name - {}, URL - {}", file_field.name(), file_field.url());
+    ///
+    /// // Now, you can associate this FileField with a ParseObject
+    /// let mut player_profile_data = HashMap::new();
+    /// player_profile_data.insert("playerName".to_string(), Value::String("John Doe".to_string()));
+    /// player_profile_data.insert("profilePicture".to_string(), Value::File(file_field));
+    ///
+    /// let mut player_profile = ParseObject::new("PlayerProfile", player_profile_data);
+    /// let created_profile: ParseObject = client.create(&mut player_profile).await?;
+    ///
+    /// println!("Created PlayerProfile with ID: {}", created_profile.get_object_id().unwrap_or_default());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn upload_file(
         &self,
         file_name: &str,
@@ -240,6 +442,78 @@ impl ParseClient {
     }
 
     // Aggregate queries
+    /// Executes an aggregation pipeline against a specified class and returns the results.
+    ///
+    /// Aggregation queries allow for complex data processing and computation directly on the server.
+    /// The pipeline is defined as a `serde_json::Value`, typically an array of stages (e.g., `$match`, `$group`, `$sort`).
+    /// This method requires the Master Key to be configured on the `ParseClient` and is used for the request.
+    ///
+    /// Refer to the [Parse Server aggregation documentation](https://docs.parseplatform.org/rest/guide/#aggregate) and
+    /// [MongoDB aggregation pipeline documentation](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) for details on constructing pipelines.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T`: The type that each element of the result set is expected to deserialize into. This type must implement `DeserializeOwned`.
+    ///
+    /// # Arguments
+    ///
+    /// * `class_name`: The name of the class to perform the aggregation on (e.g., `"GameScore"`).
+    /// * `pipeline`: A `serde_json::Value` representing the aggregation pipeline. This is usually a JSON array.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a `Vec<T>` where `T` is the deserialized type of the aggregation results.
+    /// Returns a `ParseError` if the aggregation fails, the pipeline is invalid, or the Master Key is not available.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError};
+    /// use serde::Deserialize;
+    /// use serde_json::json; // for constructing the pipeline value
+    ///
+    /// #[derive(Deserialize, Debug)]
+    /// struct PlayerStats {
+    ///     // Note: Parse Server might return grouped _id as "objectId"
+    ///     #[serde(rename = "objectId")]
+    ///     player_name: String,
+    ///     total_score: i64,
+    ///     average_score: f64,
+    /// }
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
+    /// # let client = ParseClient::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    ///
+    /// let class_name = "GameScore";
+    /// let pipeline = json!([
+    ///     { "$match": { "playerName": { "$exists": true } } },
+    ///     { "$group": {
+    ///         "_id": "$playerName",
+    ///         "totalScore": { "$sum": "$score" },
+    ///         "averageScore": { "$avg": "$score" }
+    ///     }},
+    ///     { "$sort": { "totalScore": -1 } },
+    ///     { "$project": {
+    ///         "_id": 0, // Exclude the default _id field from MongoDB if not needed
+    ///         "playerName": "$_id", // Rename _id to playerName
+    ///         "total_score": "$totalScore",
+    ///         "average_score": "$averageScore"
+    ///     }}
+    /// ]);
+    ///
+    /// let results: Vec<PlayerStats> = client.execute_aggregate(class_name, pipeline).await?;
+    ///
+    /// for stats in results {
+    ///     println!("Player: {}, Total Score: {}, Avg Score: {:.2}",
+    ///              stats.player_name, stats.total_score, stats.average_score);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn execute_aggregate<T: DeserializeOwned + Send + 'static>(
         &self,
         class_name: &str,
@@ -262,6 +536,52 @@ impl ParseClient {
         Ok(response_wrapper.results) // Then extract the results vector
     }
 
+    /// Deletes an object from a class using the Master Key.
+    ///
+    /// This method provides a direct way to delete any object by its class name and object ID,
+    /// bypassing ACLs and Class-Level Permissions due to the use of the Master Key.
+    /// The Master Key must be configured on the `ParseClient` for this operation to succeed.
+    ///
+    /// For more general object deletion that respects ACLs and uses the current session's
+    /// authentication, use the `delete` method on a `ParseObject` instance retrieved via the client,
+    /// or the `delete` method available on the `ParseUserHandle` for users.
+    ///
+    /// # Arguments
+    ///
+    /// * `endpoint`: A string slice representing the relative path to the object, typically in the
+    ///   format `"classes/ClassName/objectId"` (e.g., `"classes/GameScore/xWMyZ4YEGZ"`).
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a `serde_json::Value` (which is usually an empty JSON object `{}`
+    /// upon successful deletion by the Parse Server) or a `ParseError` if the deletion fails
+    /// (e.g., object not found, Master Key not configured, network issue).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError};
+    /// use serde_json::Value;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
+    /// # let client = ParseClient::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    ///
+    /// let class_name = "OldGameData";
+    /// let object_id_to_delete = "someObjectId123";
+    /// let endpoint_to_delete = format!("classes/{}/{}", class_name, object_id_to_delete);
+    ///
+    /// // Ensure client is configured with Master Key for this to work
+    /// match client.delete_object_with_master_key(&endpoint_to_delete).await {
+    ///     Ok(_) => println!("Successfully deleted object {} from class {}.", object_id_to_delete, class_name),
+    ///     Err(e) => eprintln!("Failed to delete object: {}", e),
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn delete_object_with_master_key(
         &self,
         endpoint: &str, // Expects relative endpoint like "classes/MyClass/objectId"
@@ -329,14 +649,72 @@ impl ParseClient {
     }
 
     /// Updates the schema for a given class, typically to set Class-Level Permissions.
-    /// Requires the Master Key.
+    ///
+    /// This operation requires the Master Key to be configured on the `ParseClient` and will use it for authentication.
+    /// The schema payload defines the permissions for various operations (e.g., `get`, `find`, `create`, `update`, `delete`)
+    /// and can specify which roles or users have these permissions.
+    ///
+    /// Refer to the [Parse Server Security Guide](https://docs.parseplatform.org/rest/guide/#security) for detailed information
+    /// on Class-Level Permissions and the structure of the schema payload.
     ///
     /// # Arguments
-    /// * `class_name`: The name of the class whose schema is to be updated.
-    /// * `schema_payload`: A `serde_json::Value` representing the schema update payload (e.g., CLPs).
+    ///
+    /// * `class_name`: The name of the class whose schema is to be updated (e.g., `"GameScore"`).
+    /// * `schema_payload`: A `serde_json::Value` representing the schema modifications. This is typically a JSON object
+    ///   containing the `classLevelPermissions` field.
     ///
     /// # Returns
-    /// A `Result` containing the server's response (typically the updated schema definition as `serde_json::Value`) or a `ParseError`.
+    ///
+    /// A `Result` containing a `serde_json::Value` (which is the server's response, often confirming the updated schema)
+    /// or a `ParseError` if the update fails (e.g., invalid payload, Master Key not configured, network issue).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError};
+    /// use serde_json::json; // For creating the schema payload
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
+    /// # let client = ParseClient::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    ///
+    /// let class_name = "SensitiveData";
+    ///
+    /// // Example: Make class public for read, but require 'Admin' role for write
+    /// let clp = json!({
+    ///     "classLevelPermissions": {
+    ///         "find": {"*": true},
+    ///         "get": {"*": true},
+    ///         "create": {"role:Admin": true},
+    ///         "update": {"role:Admin": true},
+    ///         "delete": {"role:Admin": true},
+    ///         "addField": {"role:Admin": true}
+    ///     }
+    /// });
+    ///
+    /// match client.update_class_schema(class_name, &clp).await {
+    ///     Ok(response) => println!("Successfully updated schema for class {}: {}", class_name, response),
+    ///     Err(e) => eprintln!("Failed to update schema for class {}: {}", class_name, e),
+    /// }
+    ///
+    /// // Example: Lock down a class completely (only Master Key can access)
+    /// let locked_clp = json!({
+    ///     "classLevelPermissions": {
+    ///         "find": {},
+    ///         "get": {},
+    ///         "create": {},
+    ///         "update": {},
+    ///         "delete": {},
+    ///         "addField": {}
+    ///     }
+    /// });
+    /// // client.update_class_schema("SuperSecretClass", &locked_clp).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn update_class_schema(
         &self,
         class_name: &str,
@@ -353,14 +731,103 @@ impl ParseClient {
     }
 
     // Methods to get handles for specific Parse features
+    /// Returns a `ParseUserHandle` for managing user authentication and user-specific operations.
+    ///
+    /// The `ParseUserHandle` provides methods like `signup`, `login`, `logout`, `request_password_reset`,
+    /// `get_current_user`, `update_current_user`, and `delete_current_user`.
+    /// It operates in the context of the current `ParseClient` instance, using its configuration
+    /// and session state.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError, types::Value};
+    /// use std::collections::HashMap;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    ///
+    /// let mut user_data = HashMap::new();
+    /// user_data.insert("email".to_string(), Value::String("test@example.com".to_string()));
+    /// // Add other fields as needed for signup
+    ///
+    /// // Get the user handle and sign up a new user
+    /// // let new_user = client.user().signup("testuser", "password123", Some(user_data)).await?;
+    /// // println!("New user signed up with ID: {}", new_user.get_object_id().unwrap_or_default());
+    ///
+    /// // Later, to log in:
+    /// // let logged_in_user = client.user().login("testuser", "password123").await?;
+    /// // println!("User logged in. Session token: {}", client.session_token().unwrap_or_default());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn user(&mut self) -> ParseUserHandle<'_> {
         ParseUserHandle::new(self)
     }
 
+    /// Returns a `ParseSessionHandle` for managing session-specific operations.
+    ///
+    /// The `ParseSessionHandle` provides methods like `get_current_session` (to validate the current client's session token)
+    /// and `delete_session` (to delete a specific session, requires Master Key).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError, ParseSession};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    ///
+    /// // After a user logs in, their session token is stored in the client.
+    /// // You can then get details about the current session:
+    /// // if client.is_authenticated() {
+    /// //     match client.session().get_current_session().await {
+    /// //         Ok(current_session_details) => {
+    /// //             println!("Current session is valid for user: {}",
+    /// //                      current_session_details.get_user().map_or("N/A", |u| u.get_object_id().unwrap_or_default()));
+    /// //         }
+    /// //         Err(e) => eprintln!("Could not get current session details: {}", e),
+    /// //     }
+    /// // }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn session(&self) -> crate::session::ParseSessionHandle<'_> {
         crate::session::ParseSessionHandle::new(self)
     }
 
+    /// Returns a `ParseCloud` handle for calling Parse Cloud Code functions.
+    ///
+    /// The `ParseCloud` handle provides the `call_function` method to execute server-side Cloud Code.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use parse_rs::{ParseClient, ParseError};
+    /// use serde_json::json; // For creating parameters
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), ParseError> {
+    /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
+    /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
+    /// # let client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    ///
+    /// let function_name = "helloWorld";
+    /// let params = json!({ "name": "Rustaceans" });
+    ///
+    /// // match client.cloud().call_function(function_name, Some(params)).await {
+    /// //     Ok(result) => println!("Cloud function '{}' returned: {}", function_name, result),
+    /// //     Err(e) => eprintln!("Cloud function '{}' failed: {}", function_name, e),
+    /// // }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn cloud(&self) -> ParseCloud<'_> {
         ParseCloud::new(self)
     }
