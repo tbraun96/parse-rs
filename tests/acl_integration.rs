@@ -153,7 +153,7 @@ async fn test_set_and_retrieve_user_specific_acl() {
     for user_id_to_delete in user_ids_to_cleanup {
         // Need to use master key to delete users directly by ID
         let endpoint = format!("users/{}", user_id_to_delete);
-        // Use the new method from ParseClient
+        // Use the new method from Parse
         match client.delete_object_with_master_key(&endpoint).await {
             Ok(_) => println!("Successfully cleaned up user: {}", user_id_to_delete),
             Err(e) => eprintln!(

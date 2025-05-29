@@ -1,7 +1,7 @@
 // src/object.rs
 
 use crate::acl::ParseACL;
-use crate::client::ParseClient;
+use crate::client::Parse;
 use crate::types::date::ParseDate;
 use crate::ParseError;
 use serde::de::{DeserializeOwned, Deserializer};
@@ -147,7 +147,7 @@ pub struct UpdateObjectResponse {
     pub updated_at: ParseDate,
 }
 
-impl ParseClient {
+impl Parse {
     pub async fn create_object<T: Serialize + Send + Sync>(
         &self,
         class_name: &str,

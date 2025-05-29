@@ -93,11 +93,11 @@ pub struct PasswordResetRequest<'a> {
 
 /// Provides methods for managing user authentication and user-specific operations.
 ///
-/// An instance of `ParseUserHandle` is obtained by calling the [`user()`](crate::ParseClient::user)
-/// method on a `ParseClient` instance. It allows for operations such as signing up new users,
+/// An instance of `ParseUserHandle` is obtained by calling the [`user()`](crate::Parse::user)
+/// method on a `Parse` instance. It allows for operations such as signing up new users,
 /// logging in existing users, fetching the current user's details, logging out, and requesting password resets.
 ///
-/// The handle maintains a mutable reference to the `ParseClient` to update its session state (e.g., `session_token`)
+/// The handle maintains a mutable reference to the `Parse` to update its session state (e.g., `session_token`)
 /// upon successful login or signup, and to clear it on logout.
 pub struct ParseUserHandle<'a> {
     client: &'a mut crate::Parse,
@@ -106,11 +106,11 @@ pub struct ParseUserHandle<'a> {
 impl ParseUserHandle<'_> {
     /// Creates a new `ParseUserHandle`.
     ///
-    /// This constructor is typically called by `ParseClient::user()`.
+    /// This constructor is typically called by `Parse::user()`.
     ///
     /// # Arguments
     ///
-    /// * `client`: A mutable reference to the `ParseClient` instance that this handle will operate upon.
+    /// * `client`: A mutable reference to the `Parse` instance that this handle will operate upon.
     pub fn new(client: &mut crate::Parse) -> ParseUserHandle<'_> {
         ParseUserHandle { client }
     }
@@ -120,7 +120,7 @@ impl ParseUserHandle<'_> {
     ///
     /// This method sends the provided user data to the `/users` endpoint. Upon successful signup,
     /// the Parse Server returns the new user's `objectId`, a `sessionToken`, and `createdAt` timestamp.
-    /// The `sessionToken` is automatically stored in the `ParseClient` instance, making the new user
+    /// The `sessionToken` is automatically stored in the `Parse` instance, making the new user
     /// the current authenticated user for subsequent requests.
     ///
     /// # Type Parameters
@@ -143,14 +143,14 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError, user::SignupRequest, types::Value};
+    /// use parse_rs::{Parse, ParseError, user::SignupRequest, types::Value};
     /// use std::collections::HashMap;
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// // Example 1: Using SignupRequest for standard fields
     /// let signup_details = SignupRequest {
@@ -209,7 +209,7 @@ impl ParseUserHandle<'_> {
     ///
     /// This method sends the provided user credentials (typically username and password) to the `/login` endpoint.
     /// Upon successful login, the Parse Server returns the full user object, including a `sessionToken`.
-    /// This `sessionToken` is automatically stored in the `ParseClient` instance, making the user
+    /// This `sessionToken` is automatically stored in the `Parse` instance, making the user
     /// the current authenticated user for subsequent requests.
     ///
     /// # Type Parameters
@@ -231,13 +231,13 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError, user::LoginRequest};
+    /// use parse_rs::{Parse, ParseError, user::LoginRequest};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// // Assume "test_user" was previously signed up
     /// let login_details = LoginRequest {
@@ -280,7 +280,7 @@ impl ParseUserHandle<'_> {
     /// Fetches the details of the currently authenticated user.
     ///
     /// This method makes a GET request to the `/users/me` endpoint, which requires a valid
-    /// session token to be present in the `ParseClient` (set automatically after a successful
+    /// session token to be present in the `Parse` (set automatically after a successful
     /// login or signup).
     ///
     /// If no session token is available in the client, this method will return a
@@ -295,13 +295,13 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError, user::LoginRequest};
+    /// use parse_rs::{Parse, ParseError, user::LoginRequest};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// // First, log in a user (or sign them up)
     /// // let login_details = LoginRequest { username: "test_user", password: "password123" };
@@ -339,8 +339,8 @@ impl ParseUserHandle<'_> {
     /// Logs out the currently authenticated user.
     ///
     /// This method sends a POST request to the `/logout` endpoint using the current session token
-    /// stored in the `ParseClient`. If successful, the Parse Server invalidates the session token.
-    /// This method also clears the `session_token` from the `ParseClient` instance, effectively
+    /// stored in the `Parse`. If successful, the Parse Server invalidates the session token.
+    /// This method also clears the `session_token` from the `Parse` instance, effectively
     /// ending the current user's session on the client-side as well.
     ///
     /// If no session token is available in the client, this method will return a
@@ -355,13 +355,13 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError, user::LoginRequest};
+    /// use parse_rs::{Parse, ParseError, user::LoginRequest};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// // First, ensure a user is logged in
     /// // let login_details = LoginRequest { username: "test_user", password: "password123" };
@@ -434,13 +434,13 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError, user::PasswordResetRequest};
+    /// use parse_rs::{Parse, ParseError, user::PasswordResetRequest};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// let email_for_reset = "user_to_reset@example.com";
     /// let reset_request_data = PasswordResetRequest { email: email_for_reset };
@@ -482,7 +482,7 @@ impl ParseUserHandle<'_> {
     /// `session_token_to_become` provided as an argument, instead of the client's current session token.
     /// If the provided session token is valid, the server responds with the details of the user
     /// associated with that token. Crucially, upon a successful response, this method **replaces**
-    /// the `ParseClient`'s current `session_token` with `session_token_to_become`.
+    /// the `Parse`'s current `session_token` with `session_token_to_become`.
     ///
     /// This is a powerful operation and should be used with caution, typically in administrative
     /// contexts or when implementing features like "Log in as user" for support purposes.
@@ -503,13 +503,13 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{ParseClient, ParseError};
+    /// use parse_rs::{Parse, ParseError};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = ParseClient::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
     ///
     /// // Assume `target_user_session_token` is a valid session token for another user, obtained securely.
     /// let target_user_session_token = "r:someValidSessionTokenForAnotherUser";

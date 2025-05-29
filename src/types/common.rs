@@ -98,3 +98,78 @@ impl ParseRelation {
         }
     }
 }
+
+/// Represents different Parse Server API endpoints.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Endpoint {
+    Classes(String),                 // Class name
+    Objects(String, Option<String>), // Class name, optional objectId
+    Users,
+    UsersLogin,
+    UsersLogout,
+    UsersMe,
+    RequestPasswordReset,
+    Roles,
+    RolesSpecific(String), // Role objectId
+    Schemas,
+    SchemasSpecific(String), // Schema class name
+    Files(String),           // File name
+    Functions(String),       // Function name
+    Config,
+    Aggregate(String), // Class name for aggregate
+                       // Add other endpoints as needed
+}
+
+impl Endpoint {
+    /// Builds the full URL path for the endpoint.
+    pub fn build_url(&self, base_path: &str) -> String {
+        let path = match self {
+            Endpoint::Classes(class_name) => format!("{}/classes/{}", base_path, class_name),
+            Endpoint::Objects(class_name, Some(object_id)) => {
+                format!("{}/classes/{}/{}", base_path, class_name, object_id)
+            }
+            Endpoint::Objects(class_name, None) => format!("{}/classes/{}", base_path, class_name),
+            Endpoint::Users => format!("{}/users", base_path),
+            Endpoint::UsersLogin => format!("{}/login", base_path),
+            Endpoint::UsersLogout => format!("{}/logout", base_path),
+            Endpoint::UsersMe => format!("{}/users/me", base_path),
+            Endpoint::RequestPasswordReset => format!("{}/requestPasswordReset", base_path),
+            Endpoint::Roles => format!("{}/roles", base_path),
+            Endpoint::RolesSpecific(role_id) => format!("{}/roles/{}", base_path, role_id),
+            Endpoint::Schemas => format!("{}/schemas", base_path),
+            Endpoint::SchemasSpecific(class_name) => {
+                format!("{}/schemas/{}", base_path, class_name)
+            }
+            Endpoint::Files(file_name) => format!("{}/files/{}", base_path, file_name),
+            Endpoint::Functions(function_name) => {
+                format!("{}/functions/{}", base_path, function_name)
+            }
+            Endpoint::Config => format!("{}/config", base_path),
+            Endpoint::Aggregate(class_name) => format!("{}/aggregate/{}", base_path, class_name),
+        };
+        // Ensure no double slashes if base_path is just "/"
+        path.replace("//", "/")
+    }
+}
+
+/// Type alias for query parameters, typically a HashMap.
+pub type QueryParams = std::collections::HashMap<String, String>;
+
+/// Represents a generic list of results, commonly returned by find operations.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Results<T> {
+    pub results: Vec<T>,
+    // Add other common fields like 'count' if needed for pagination
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+}
+
+/// Represents common data in response to update operations.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateResponseData {
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String, // ISO 8601 format
+    // Some update operations might return objectId, e.g., if it's a create-or-update
+    #[serde(rename = "objectId", skip_serializing_if = "Option::is_none")]
+    pub object_id: Option<String>,
+}

@@ -1,12 +1,12 @@
-use parse_rs::client::ParseClient;
 use parse_rs::role::NewParseRole;
+use parse_rs::Parse;
 use parse_rs::ParseACL;
 use uuid::Uuid;
 
 mod query_test_utils;
 use query_test_utils::shared::setup_client_with_master_key;
 
-async fn cleanup_role(client: &ParseClient, role_id: &str) {
+async fn cleanup_role(client: &Parse, role_id: &str) {
     let _ = client.delete_role(role_id).await;
 }
 

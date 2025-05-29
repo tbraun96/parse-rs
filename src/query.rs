@@ -3,7 +3,7 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::{client::ParseClient, error::ParseError, Pointer};
+use crate::{client::Parse, error::ParseError, Pointer};
 
 /// Represents a query to be performed against a Parse Server class.
 #[derive(Debug, Clone)]
@@ -398,7 +398,7 @@ impl ParseQuery {
 
     async fn find_raw<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
-        client: &ParseClient,
+        client: &Parse,
     ) -> Result<FindResponse<T>, ParseError> {
         let endpoint = format!("classes/{}", self.class_name);
         let params = self.build_query_params();
@@ -410,7 +410,7 @@ impl ParseQuery {
 
     async fn first_raw<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
-        client: &ParseClient,
+        client: &Parse,
     ) -> Result<Option<T>, ParseError> {
         let mut query_clone = self.clone();
         query_clone.limit(1);
@@ -425,7 +425,7 @@ impl ParseQuery {
     /// Retrieves a list of `ParseObject`s that match this query.
     pub async fn find<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
-        client: &ParseClient,
+        client: &Parse,
     ) -> Result<Vec<T>, ParseError> {
         let response_wrapper = self.find_raw(client).await?;
         Ok(response_wrapper.results)
@@ -434,7 +434,7 @@ impl ParseQuery {
     /// Retrieves the first `ParseObject` that matches this query.
     pub async fn first<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
-        client: &ParseClient,
+        client: &Parse,
     ) -> Result<Option<T>, ParseError> {
         self.first_raw(client).await
     }
@@ -444,7 +444,7 @@ impl ParseQuery {
     pub async fn get<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
         object_id: &str,
-        client: &ParseClient,
+        client: &Parse,
     ) -> Result<T, ParseError> {
         let endpoint = format!("classes/{}/{}", self.class_name, object_id);
         let params = self.build_query_params();
@@ -454,7 +454,7 @@ impl ParseQuery {
     }
 
     /// Counts the number of objects that match this query.
-    pub async fn count(&self, client: &ParseClient) -> Result<u64, ParseError> {
+    pub async fn count(&self, client: &Parse) -> Result<u64, ParseError> {
         let mut query_clone = self.clone();
         query_clone.limit(0); // Limit 0 is for count
 
@@ -472,7 +472,7 @@ impl ParseQuery {
     /// Returns a vector of unique values for the given field that match the query conditions.
     pub async fn distinct<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
-        client: &ParseClient,
+        client: &Parse,
         field: &str,
     ) -> Result<Vec<T>, ParseError> {
         let endpoint = format!("aggregate/{}", self.class_name);
@@ -531,14 +531,14 @@ impl ParseQuery {
     ///
     /// # Arguments
     /// * `pipeline` - A vector of `serde_json::Value` representing the aggregation stages.
-    /// * `client` - The `ParseClient` to use for the request.
+    /// * `client` - The `Parse` to use for the request.
     ///
     /// # Returns
     /// A `Result` containing a `Vec<T>` of the deserialized results, or a `ParseError`.
     pub async fn aggregate<T: DeserializeOwned + Send + Sync + 'static>(
         &self,
         pipeline: Vec<Value>,
-        client: &crate::client::ParseClient,
+        client: &crate::client::Parse,
     ) -> Result<Vec<T>, crate::error::ParseError> {
         client
             .execute_aggregate(&self.class_name, serde_json::Value::Array(pipeline))

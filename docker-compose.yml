@@ -3,7 +3,7 @@ services:
     build:
       context: ./docker/parse-server
       dockerfile: Dockerfile
-    container_name: parse-server-ephemeral
+    container_name: parse-server-ephemeral-parse-rs
     ports:
       - "${PARSE_SERVER_PORT}:${PARSE_SERVER_PORT}"
     volumes:
@@ -13,10 +13,11 @@ services:
       - PARSE_SERVER_APPLICATION_ID=${PARSE_APP_ID}
       - PARSE_SERVER_MASTER_KEY=${PARSE_SERVER_MASTER_KEY}
       - PARSE_SERVER_MASTER_KEY_IPS=0.0.0.0/0,::/0
+      - MONGO_SERVER_PORT=${MONGO_SERVER_PORT}
       # This PARSE_SERVER_URL is for the server's internal config.
       # Experiment: Use localhost for the server's own configuration to see if it resolves self-connection issues.
       - PARSE_SERVER_URL=http://localhost:${PARSE_SERVER_PORT}/parse
-      - PARSE_SERVER_DATABASE_URI=mongodb://mongo-ephemeral:27017/parseDb
+      - PARSE_SERVER_DATABASE_URI=mongodb://mongo-ephemeral-parse-rs:${MONGO_SERVER_PORT}/parseDb
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin@admin.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - PARSE_SERVER_PORT=${PARSE_SERVER_PORT}
@@ -33,12 +34,17 @@ services:
 
   mongo:
     image: mongo:latest
-    container_name: mongo-ephemeral
+    container_name: mongo-ephemeral-parse-rs
     restart: unless-stopped
+    ports:
+      - "${MONGO_SERVER_PORT}:${MONGO_SERVER_PORT}"
+    environment:
+      - MONGO_SERVER_PORT=${MONGO_SERVER_PORT}
+    command: ["mongod", "--port", "${MONGO_SERVER_PORT}"]
     networks:
       - test-network
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: [ "CMD", "mongosh", "--port", "${MONGO_SERVER_PORT}", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5

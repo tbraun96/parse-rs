@@ -304,7 +304,7 @@ parse-rs/
 
 ```bash
 docker run -d \
-  --name parse-server-ephemeral \
+  --name parse-server-ephemeral-parse-rs \
   -p ${PARSE_SERVER_PORT}:${PARSE_SERVER_PORT} \
   -e APP_ID=myAppId \
   -e MASTER_KEY=myMasterKey \

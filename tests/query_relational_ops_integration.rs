@@ -3,8 +3,8 @@ mod query_test_utils;
 #[cfg(test)]
 mod relational_query_tests {
     use super::query_test_utils::shared::*; // Corrected: use shared module
-    use parse_rs::client::ParseClient; // Add this import
     use parse_rs::query::ParseQuery;
+    use parse_rs::Parse; // Add this import
     use parse_rs::ParseError;
     use serde::{Deserialize, Serialize};
     use serde_json::{json, Value};
@@ -28,7 +28,7 @@ mod relational_query_tests {
     }
 
     async fn setup_author_book_data(
-        client: &ParseClient,
+        client: &Parse,
         author_class_name: &str,
         book_class_name: &str,
     ) -> Result<(Author, Book), ParseError> {

@@ -1,7 +1,7 @@
 use dotenvy::dotenv;
-use parse_rs::client::ParseClient as Parse;
 use parse_rs::error::ParseError;
 use parse_rs::query::ParseQuery;
+use parse_rs::Parse;
 use parse_rs::ParseObject;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

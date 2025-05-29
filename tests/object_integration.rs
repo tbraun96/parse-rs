@@ -10,7 +10,7 @@ mod query_test_utils;
 #[cfg(test)]
 mod object_tests {
     use super::*;
-    use parse_rs::client::ParseClient as Parse;
+    use parse_rs::Parse;
 
     async fn create_test_object_with_fields(
         client: &Parse,

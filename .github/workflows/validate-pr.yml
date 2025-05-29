@@ -44,7 +44,7 @@ jobs:
           docker compose up -d
 
       - name: Wait for Parse Server
-        run: |
+        run: |       
           echo "Waiting for Parse Server to initialize..."
           sleep 20 # Adjust as needed, or implement a proper health check script
           echo "Parse Server should be up. Checking Docker logs:"

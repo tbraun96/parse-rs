@@ -4,9 +4,9 @@ mod query_test_utils;
 use crate::query_test_utils::shared::setup_client_with_master_key;
 use crate::query_test_utils::shared::{cleanup_test_class, create_test_object};
 use dotenvy::dotenv;
-use parse_rs::client::ParseClient;
 use parse_rs::error::ParseError;
 use parse_rs::query::ParseQuery;
+use parse_rs::Parse;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
@@ -56,7 +56,7 @@ mod aggregate_query_tests {
         score: i32,
     }
 
-    async fn setup_test_data(client: &ParseClient, class_name: &str) {
+    async fn setup_test_data(client: &Parse, class_name: &str) {
         let scores_data = vec![
             TestScoreObject {
                 object_id: None,

@@ -17,17 +17,6 @@ wait_for() {
     echo "$1 is ready."
 }
 
-# Get DB host and port from URI
-DB_HOST=$(echo $PARSE_SERVER_DATABASE_URI | sed -n 's/mongodb:\/\/\([^:]*\):\([0-9]*\)\/.*/\1/p')
-DB_PORT=$(echo $PARSE_SERVER_DATABASE_URI | sed -n 's/mongodb:\/\/\([^:]*\):\([0-9]*\)\/.*/\2/p')
-
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
-    echo "Error: Could not parse DB_HOST or DB_PORT from PARSE_SERVER_DATABASE_URI: $PARSE_SERVER_DATABASE_URI"
-    exit 1
-fi
-
-wait_for $DB_HOST $DB_PORT
-
 echo "Starting Parse Server in background..."
 node ./bin/parse-server \
     --appId ${PARSE_SERVER_APPLICATION_ID} \
@@ -47,7 +36,7 @@ if [ -z "$PARSE_PORT_FROM_ENV" ]; then
     exit 1
 fi
 
-HEALTH_URL="http://parse-server-ephemeral:$PARSE_PORT_FROM_ENV/parse/health" 
+HEALTH_URL="http://parse-server-ephemeral-parse-rs:$PARSE_PORT_FROM_ENV/parse/health" 
 echo "############# STARTING HEALTH CHECK LOOP #################"
 echo "Waiting for Parse Server health check at $HEALTH_URL..."
 max_retries=30
