@@ -126,7 +126,7 @@ impl<'a> ParseSessionHandle<'a> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // Assume a user has logged in, so client.session_token() is Some(...)
     /// // let login_details = LoginRequest { username: "test_user", password: "password123" };
@@ -187,7 +187,7 @@ impl<'a> ParseSessionHandle<'a> {
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
     /// // Ensure the client is initialized with the Master Key for this operation
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// let session_object_id_to_fetch = "someValidSessionObjectId"; // Replace with an actual session objectId
     ///
@@ -242,7 +242,7 @@ impl<'a> ParseSessionHandle<'a> {
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
     /// // Ensure the client is initialized with the Master Key for this operation
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// let session_object_id_to_delete = "someSessionObjectIdToDelete"; // Replace with an actual session objectId
     ///
@@ -308,7 +308,7 @@ impl<'a> ParseSessionHandle<'a> {
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
     /// // Client must be initialized with the Master Key
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// let session_object_id_to_update = "someSessionObjectIdToUpdate"; // Replace with an actual session objectId
     ///
@@ -382,7 +382,7 @@ impl<'a> ParseSessionHandle<'a> {
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
     /// // Client must be initialized with the Master Key
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// // Example 1: Get all sessions (respecting server default limit) and include user data
     /// match client.session().get_all_sessions(Some("include=user")).await {

@@ -89,7 +89,7 @@ impl<'a> ParseCloud<'a> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // Example 1: Calling a cloud function named "hello" with simple JSON parameters
     /// // and expecting a simple string response.

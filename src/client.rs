@@ -68,7 +68,7 @@ pub enum AuthType {
 ///     None, // javascript_key
 ///     None, // rest_api_key
 ///     Some(master_key), // master_key
-/// ).await?;
+/// )?;
 ///
 /// // Client is now ready to be used
 /// # Ok(())
@@ -138,7 +138,7 @@ impl Parse {
     ///     Some(js_key),
     ///     None, // rest_api_key
     ///     None, // master_key
-    /// ).await?;
+    /// )?;
     ///
     /// // Initialize with Master Key (will take precedence for default auth)
     /// let master_key = "myMasterKey";
@@ -148,7 +148,7 @@ impl Parse {
     ///     Some(js_key), // JS key is also provided
     ///     None,         // REST API key
     ///     Some(master_key), // Master key will be used by default
-    /// ).await?;
+    /// )?;
     /// # Ok(())
     /// # }
     /// ```
@@ -258,7 +258,7 @@ impl Parse {
     /// # use parse_rs::{Parse, ParseError};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
-    /// # let mut client = Parse::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey")).await?;
+    /// # let mut client = Parse::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey"))?;
     /// // After a user logs in, the client might have a session token.
     /// if let Some(token) = client.session_token() {
     ///     println!("Current session token: {}", token);
@@ -282,7 +282,7 @@ impl Parse {
     /// # use parse_rs::{Parse, ParseError};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
-    /// # let mut client = Parse::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey")).await?;
+    /// # let mut client = Parse::new("http://localhost:1338/parse", "myAppId", None, None, Some("myMasterKey"))?;
     /// if client.is_authenticated() {
     ///     println!("Client has an active session.");
     /// } else {
@@ -319,7 +319,8 @@ impl Parse {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{Parse, ParseError, FileField, ParseObject, types::Value};
+    /// use parse_rs::{Parse, ParseError, FileField, ParseObject, object::CreateObjectResponse};
+    /// use serde_json::Value;
     /// use std::collections::HashMap;
     ///
     /// # #[tokio::main]
@@ -327,7 +328,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// let file_name = "profile.png";
     /// let file_data: Vec<u8> = vec![0, 1, 2, 3, 4, 5]; // Example byte data
@@ -336,17 +337,17 @@ impl Parse {
     /// // Upload the file
     /// let file_field: FileField = client.upload_file(file_name, file_data, mime_type).await?;
     ///
-    /// println!("File uploaded successfully: Name - {}, URL - {}", file_field.name(), file_field.url());
+    /// println!("File uploaded successfully: Name - {}, URL - {}", file_field.name, file_field.url);
     ///
     /// // Now, you can associate this FileField with a ParseObject
     /// let mut player_profile_data = HashMap::new();
     /// player_profile_data.insert("playerName".to_string(), Value::String("John Doe".to_string()));
-    /// player_profile_data.insert("profilePicture".to_string(), Value::File(file_field));
+    /// player_profile_data.insert("profilePicture".to_string(), serde_json::to_value(file_field)?);
     ///
-    /// let mut player_profile = ParseObject::new("PlayerProfile", player_profile_data);
-    /// let created_profile: ParseObject = client.create(&mut player_profile).await?;
+    /// let mut player_profile = ParseObject::new("PlayerProfile");
+    /// let created_profile: CreateObjectResponse = client.create_object("PlayerProfile", &player_profile).await?;
     ///
-    /// println!("Created PlayerProfile with ID: {}", created_profile.get_object_id().unwrap_or_default());
+    /// println!("Created PlayerProfile with ID: {}", created_profile.object_id);
     /// # Ok(())
     /// # }
     /// ```
@@ -488,7 +489,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     /// let class_name = "GameScore";
     /// let pipeline = json!([
     ///     { "$match": { "playerName": { "$exists": true } } },
@@ -569,7 +570,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// # let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// # let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// let class_name = "OldGameData";
     /// let object_id_to_delete = "someObjectId123";
@@ -691,7 +692,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     /// let new_class_name = "MyTemporaryClass";
     ///
     /// let schema_payload = json!({
@@ -791,7 +792,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     /// let class_to_update = "MyUpdatableClass";
     ///
     /// // 1. Ensure the class exists (create it for the example)
@@ -878,7 +879,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     /// let class_to_fetch = "MyTestClass"; // Assume this class exists
     ///
     /// // First, ensure the class exists by creating it if it doesn't (for testability)
@@ -959,7 +960,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     /// let class_to_delete = "MyClassToDelete";
     ///
     /// // 1. Create a class for the example (ensure it's empty for successful deletion)
@@ -1022,14 +1023,15 @@ impl Parse {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{Parse, ParseError, types::Value};
+    /// use parse_rs::{Parse, ParseError};
+    /// use serde_json::Value;
     /// use std::collections::HashMap;
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// let mut user_data = HashMap::new();
     /// user_data.insert("email".to_string(), Value::String("test@example.com".to_string()));
@@ -1063,7 +1065,7 @@ impl Parse {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // After a user logs in, their session token is stored in the client.
     /// // You can then get details about the current session:
@@ -1097,7 +1099,7 @@ impl Parse {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// let function_name = "helloWorld";
     /// let params = json!({ "name": "Rustaceans" });
@@ -1134,7 +1136,7 @@ impl Parse {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
     /// # let master_key = std::env::var("PARSE_MASTER_KEY").unwrap_or_else(|_| "myMasterKey".to_string());
-    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key)).await?;
+    /// let client = Parse::new(&server_url, &app_id, None, None, Some(&master_key))?;
     ///
     /// match client.get_all_schemas().await {
     ///     Ok(response) => {

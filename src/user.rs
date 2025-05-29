@@ -143,14 +143,15 @@ impl ParseUserHandle<'_> {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use parse_rs::{Parse, ParseError, user::SignupRequest, types::Value};
+    /// use parse_rs::{Parse, ParseError, user::SignupRequest};
+    /// use serde_json::Value;
     /// use std::collections::HashMap;
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // Example 1: Using SignupRequest for standard fields
     /// let signup_details = SignupRequest {
@@ -237,7 +238,7 @@ impl ParseUserHandle<'_> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // Assume "test_user" was previously signed up
     /// let login_details = LoginRequest {
@@ -301,7 +302,7 @@ impl ParseUserHandle<'_> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // First, log in a user (or sign them up)
     /// // let login_details = LoginRequest { username: "test_user", password: "password123" };
@@ -361,7 +362,7 @@ impl ParseUserHandle<'_> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // First, ensure a user is logged in
     /// // let login_details = LoginRequest { username: "test_user", password: "password123" };
@@ -440,7 +441,7 @@ impl ParseUserHandle<'_> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// let email_for_reset = "user_to_reset@example.com";
     /// let reset_request_data = PasswordResetRequest { email: email_for_reset };
@@ -509,7 +510,7 @@ impl ParseUserHandle<'_> {
     /// # async fn main() -> Result<(), ParseError> {
     /// # let server_url = std::env::var("PARSE_SERVER_URL").unwrap_or_else(|_| "http://localhost:1338/parse".to_string());
     /// # let app_id = std::env::var("PARSE_APP_ID").unwrap_or_else(|_| "myAppId".to_string());
-    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None).await?;
+    /// # let mut client = Parse::new(&server_url, &app_id, None, None, None)?;
     ///
     /// // Assume `target_user_session_token` is a valid session token for another user, obtained securely.
     /// let target_user_session_token = "r:someValidSessionTokenForAnotherUser";

@@ -16,7 +16,8 @@
 //! ## Quick Start Example
 //!
 //! ```rust,no_run
-//! use parse_rs::{Parse, ParseError, ParseObject, types::Value};
+//! use parse_rs::{Parse, ParseError, ParseObject, object::CreateObjectResponse};
+//! use serde_json::Value;
 //! use std::collections::HashMap;
 //!
 //! #[tokio::main]
@@ -34,17 +35,17 @@
 //!         None, // javascript_key
 //!         None, // rest_api_key
 //!         Some(&master_key),
-//!     ).await?;
+//!     )?;
 //!
 //!     // Create a new ParseObject
 //!     let mut game_score_data = HashMap::new();
 //!     game_score_data.insert("score".to_string(), Value::Number(1337.into()));
 //!     game_score_data.insert("playerName".to_string(), Value::String("Sean Plott".to_string()));
 //!
-//!     let mut new_score = ParseObject::new("GameScore", game_score_data);
-//!     let created_object: ParseObject = client.create(&mut new_score).await?;
+//!     let mut new_score = ParseObject::new("GameScore");
+//!     let created_object: CreateObjectResponse = client.create_object("GameScore", &new_score).await?;
 //!
-//!     println!("Successfully created GameScore with objectId: {}", created_object.get_object_id().unwrap_or_default());
+//!     println!("Successfully created GameScore with objectId: {}", created_object.object_id);
 //!     Ok(())
 //! }
 //! ```
