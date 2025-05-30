@@ -294,11 +294,11 @@ parse-rs/
 * [X] Implement `ParseFile` functionality (`src/file.rs`): creating from data,
   saving (uploading), getting URL.
 * [X] Integration tests for `ParseFile`.
-* [ ] Add comprehensive public API documentation (doc comments).
+* [x] Add comprehensive public API documentation (doc comments).
 * [ ] Create examples for common use cases in `README.md` or an `examples/`
   directory.
 * [ ] Consider advanced types/features:
-  * [ ] `ParseInstallation` (for device registration, crucial for push notifications).
+  * [x] `ParseInstallation` (for device registration, crucial for push notifications).
   * [ ] `ParsePush` (for sending push notifications).
   * [X] `ParseSchema` (for programmatically managing class schemas).
 
@@ -360,7 +360,7 @@ Beyond the immediate to-do list, the following Parse REST API features are candi
 
 * `[x] Tracking custom application events (Endpoint: /parse/events/<eventName>)` (Basic `track_event` implemented)
 
-[ ] **Installations API**:
+[x] **Installations API**:
 
 * `[x] Creating/Uploading Installation data`
 * `[x] Retrieving Installations (by objectId), [x] querying`
