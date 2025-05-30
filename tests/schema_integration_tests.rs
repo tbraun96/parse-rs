@@ -1,5 +1,6 @@
-use parse_rs::{ClassLevelPermissionsSchema, FieldSchema, FieldType, ParseError, ParseSchema};
-use serde_json::{json, Value};
+use parse_rs::schema::{ClassLevelPermissionsSchema, FieldSchema, FieldType, IndexFieldType};
+use parse_rs::ParseError;
+use serde_json::json;
 use std::collections::HashMap;
 
 mod query_test_utils;
@@ -18,7 +19,6 @@ fn unique_class_name(base: &str) -> String {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_create_get_and_delete_class_schema() {
     let client = setup_client_with_master_key();
     let class_name = unique_class_name("TestSchemaLifecycle");
@@ -98,6 +98,34 @@ async fn test_create_get_and_delete_class_schema() {
         .get_all_schemas()
         .await
         .expect("Failed to get all schemas");
+
+    // Debug print for indexes
+    for schema in &all_schemas_response.results {
+        if let Some(indexes) = &schema.indexes {
+            for (index_name, index_fields) in indexes {
+                for (field_name, value) in index_fields {
+                    match value {
+                        IndexFieldType::Text(text_val) => {
+                            println!(
+                                "DEBUG: Schema '{}', Index '{}', Field '{}': Text index value: {:?}",
+                                schema.class_name, index_name, field_name, text_val
+                            );
+                        }
+                        IndexFieldType::Other(other_val) => {
+                            println!(
+                                "DEBUG: Schema '{}', Index '{}', Field '{}': Other index value: {:?}",
+                                schema.class_name, index_name, field_name, other_val
+                            );
+                        }
+                        IndexFieldType::SortOrder(_) => {
+                            // This is expected, do nothing.
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     assert!(
         all_schemas_response
             .results
@@ -114,11 +142,11 @@ async fn test_create_get_and_delete_class_schema() {
 
     // 5. Verify deletion by trying to fetch it again (should fail)
     match client.get_class_schema(&class_name).await {
-        Err(ParseError::ApiError { code, error }) => {
-            assert_eq!(code, 103); // 103 is 'Classname not found.' or similar
+        Err(ParseError::OtherParseError { code, message }) => {
+            assert_eq!(code, 103);
             assert!(
-                error.to_lowercase().contains("invalid class name")
-                    || error.to_lowercase().contains("schema not found")
+                message.to_lowercase().contains("does not exist")
+                    || message.to_lowercase().contains("class not found")
             );
         }
         Ok(_) => panic!("Fetching schema after deletion should have failed but succeeded."),
@@ -184,7 +212,7 @@ async fn test_update_class_schema() {
         "classLevelPermissions": initial_clp
     });
 
-    let mut created_schema = client
+    let created_schema = client
         .create_class_schema(&class_name, &initial_schema_payload)
         .await
         .expect("Failed to create initial schema for update test");
@@ -292,7 +320,7 @@ async fn test_update_class_schema() {
                 .get("idx_fieldToKeep")
                 .unwrap()
                 .get("fieldToKeep"),
-            Some(&1)
+            Some(&IndexFieldType::SortOrder(1))
         );
     } else {
         // Note: Parse Server might not return indexes if none were *explicitly* set beyond defaults like _id.
@@ -325,7 +353,6 @@ async fn test_update_class_schema() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_delete_non_empty_class_schema_fails() {
     let client = setup_client_with_master_key();
     let class_name = unique_class_name("TestNonEmptyDelete");
@@ -360,14 +387,12 @@ async fn test_delete_non_empty_class_schema_fails() {
 
     // 3. Attempt to delete the class schema (should fail as it's not empty)
     match client.delete_class_schema(&class_name, true).await {
-        Err(ParseError::ApiError { code, error }) => {
-            // Parse Server error code 255: "Class is not empty, contains objects, cannot drop schema"
-            // Or similar, depending on Parse Server version. Check for non-empty related message.
+        Err(ParseError::OtherParseError { code, message }) => {
             assert_eq!(
                 code, 255,
                 "Expected error code 255 for non-empty class deletion"
             );
-            assert!(error.to_lowercase().contains("not empty"));
+            assert!(message.to_lowercase().contains("not empty"));
         }
         Ok(_) => panic!("Deleting non-empty schema should have failed but succeeded."),
         Err(e) => panic!(
@@ -389,8 +414,8 @@ async fn test_delete_non_empty_class_schema_fails() {
 
     // Verify schema is actually gone
     match client.get_class_schema(&class_name).await {
-        Err(ParseError::ApiError { code, error }) => {
-            assert_eq!(code, 103); // 103 is 'Classname not found.' or similar
+        Err(ParseError::OtherParseError { code, message: _ }) => {
+            assert_eq!(code, 103);
         }
         Ok(_) => panic!("Schema should not exist after cleanup but was found."),
         Err(e) => panic!(
