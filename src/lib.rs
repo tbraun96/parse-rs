@@ -7,6 +7,7 @@
 //!
 //! ## Overview
 //!
+
 //! `parse-rs` is built with `async/await` for non-blocking operations and leverages popular Rust libraries
 //! like `reqwest` for HTTP communication and `serde` for JSON serialization/deserialization.
 //!
@@ -53,6 +54,7 @@
 //! For more examples and detailed API documentation, please explore the individual modules.
 
 pub mod acl;
+pub mod analytics;
 pub mod client;
 pub mod cloud;
 pub mod config;

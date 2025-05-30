@@ -356,18 +356,16 @@ Beyond the immediate to-do list, the following Parse REST API features are candi
   * `[x] Updating Roles (e.g., adding/removing users or other roles to a role's relations)`
   * `[x] Deleting Roles`
 
-[ ] **Analytics API**:
+[x] **Analytics API**:
 
-* Tracking custom application events.
-* Endpoint: `/parse/events/<eventName>`.
+* `[x] Tracking custom application events (Endpoint: /parse/events/<eventName>)` (Basic `track_event` implemented)
 
 [ ] **Installations API**:
 
-* `[ ] Full CRUD for device installations`
-  * `[ ] Creating/Uploading Installation data`
-  * `[ ] Retrieving Installations (by objectId, querying)`
-  * `[ ] Updating Installations (e.g., channels, badge count, device token)`
-  * `[ ] Deleting Installations`
+* `[ ] Creating/Uploading Installation data`
+* `[ ] Retrieving Installations (by objectId, querying)`
+* `[ ] Updating Installations (e.g., channels, badge count, device token)`
+* `[ ] Deleting Installations`
 
 [ ] **Push Notifications API**:
 
