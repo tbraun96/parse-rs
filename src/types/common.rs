@@ -173,3 +173,8 @@ pub struct UpdateResponseData {
     #[serde(rename = "objectId", skip_serializing_if = "Option::is_none")]
     pub object_id: Option<String>,
 }
+
+/// Represents an empty JSON object response, e.g., `{}`.
+/// Useful for operations like DELETE that return a 200 OK with an empty body.
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+pub struct EmptyResponse {}

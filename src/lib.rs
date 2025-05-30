@@ -61,6 +61,7 @@ pub mod config;
 pub mod error;
 pub mod file;
 pub mod geopoint;
+pub mod installation;
 pub mod object;
 pub mod query;
 pub mod relations;

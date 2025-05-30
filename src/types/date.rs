@@ -1,7 +1,7 @@
 // src/types/date.rs
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Represents a Parse Date type, which includes timezone information.
 /// Parse stores dates in UTC.
@@ -10,6 +10,12 @@ pub struct ParseDate {
     #[serde(rename = "__type")]
     pub __type: String, // Should always be "Date"
     pub iso: String, // ISO 8601 format, e.g., "YYYY-MM-DDTHH:MM:SS.MMMZ"
+}
+
+impl fmt::Display for ParseDate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.iso)
+    }
 }
 
 impl ParseDate {
