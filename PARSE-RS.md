@@ -362,10 +362,10 @@ Beyond the immediate to-do list, the following Parse REST API features are candi
 
 [ ] **Installations API**:
 
-* `[ ] Creating/Uploading Installation data`
-* `[ ] Retrieving Installations (by objectId, querying)`
-* `[ ] Updating Installations (e.g., channels, badge count, device token)`
-* `[ ] Deleting Installations`
+* `[x] Creating/Uploading Installation data`
+* `[x] Retrieving Installations (by objectId), [x] querying`
+* `[x] Updating Installations (e.g., channels, badge count, device token)`
+* `[x] Deleting Installations`
 
 [ ] **Push Notifications API**:
 

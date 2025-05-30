@@ -6,6 +6,7 @@ use crate::schema::{GetAllSchemasResponse, ParseSchema};
 use crate::user::ParseUserHandle;
 use crate::FileField;
 use crate::ParseCloud;
+use crate::ParseQuery;
 
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use reqwest::{Client, Method, Url};
@@ -270,6 +271,16 @@ impl Parse {
     /// ```
     pub fn session_token(&self) -> Option<&str> {
         self.session_token.as_deref()
+    }
+
+    // Installation related methods
+
+    /// Creates a query for Installation objects.
+    ///
+    /// # Returns
+    /// A `ParseQuery` instance, configured for the "_Installation" class.
+    pub fn query_installations(&self) -> ParseQuery {
+        ParseQuery::new("_Installation")
     }
 
     /// Checks if the client currently has an active session token.
