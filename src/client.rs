@@ -597,6 +597,37 @@ impl Parse {
             .await
     }
 
+    /// Deletes a specific User by their objectId.
+    ///
+    /// This operation requires the Master Key to be configured on the client and will use it.
+    ///
+    /// # Arguments
+    /// * `object_id`: The objectId of the user to delete.
+    ///
+    /// # Returns
+    /// A `Result` indicating success (`Ok(())`) or a `ParseError`.
+    /// Note: The Parse Server typically returns an empty JSON object `{}` on successful deletion.
+    /// This method maps a successful response (any `Ok(Value)`) to `Ok(())`.
+    pub async fn delete_user(&self, object_id: &str) -> Result<(), ParseError> {
+        if self.master_key.is_none() {
+            return Err(ParseError::MasterKeyRequired(
+                "Deleting a user by objectId requires the Master Key to be configured on the client.".to_string(),
+            ));
+        }
+        let endpoint = format!("users/{}", object_id);
+        // Always use master key for deleting another user by ID.
+        let _response: Value = self
+            ._request(
+                Method::DELETE,
+                &endpoint,
+                None::<&()>, // No body for DELETE
+                true,        // use_master_key
+                None,        // No session token needed when using master key
+            )
+            .await?;
+        Ok(())
+    }
+
     /// Executes a `ParseQuery` and returns a list of matching objects.
     ///
     /// # Arguments

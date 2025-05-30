@@ -1,10 +1,8 @@
 use crate::acl::ParseACL;
+use crate::error::ParseError;
 use crate::object::{deserialize_string_to_option_parse_date, deserialize_string_to_parse_date};
-use crate::types::ParseDate;
-use crate::types::RelationOp;
-use crate::ParseError;
-use crate::ParseObject;
-use crate::Pointer;
+use crate::types::common::{Pointer, RelationOp};
+use crate::types::ParseDate; // Assuming ParseDate is in crate::types
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -352,13 +350,20 @@ impl crate::Parse {
         let endpoint = format!("roles/{}", role_id);
         let pointers: Vec<Pointer> = child_role_ids
             .iter()
-            .map(|&id| Pointer::new("Role", id)) // Pointer::new handles "_Role"
+            .map(|&id| Pointer::new("_Role", id)) // Corrected to _Role
             .collect();
         let relation_op = RelationOp::remove(&pointers); // Use remove
         let mut body = std::collections::HashMap::new();
         body.insert("roles", relation_op); // The field name for role-to-role relations is "roles"
 
-        let response: ParseObject = self
+        // Define a local struct for the expected response, similar to add_child_roles_to_role
+        #[derive(Deserialize)]
+        struct UpdateResponse {
+            #[serde(rename = "updatedAt")]
+            updated_at: String,
+        }
+
+        let response: UpdateResponse = self
             ._request(
                 Method::PUT,
                 &endpoint,
@@ -367,9 +372,6 @@ impl crate::Parse {
                 None, // session_token
             )
             .await?;
-        Ok(response
-            .updated_at
-            .map(|pd| ParseDate::new(pd.iso))
-            .unwrap_or_else(ParseDate::now))
+        Ok(ParseDate::new(response.updated_at))
     }
 }

@@ -81,7 +81,7 @@ It will likely return a `ParseUser` struct or a similar handler.
 * **Session Token Management:** Session tokens will be managed by the `Parse` client
   instance. Initially, this will be in-memory.
 
-### 3.2. Object Management (`ParseObject`)
+### 3.7. Roles (`ParseRole`)
 
 For creating, retrieving, updating, and deleting Parse objects (rows in your
 classes/tables).
@@ -348,13 +348,13 @@ Beyond the immediate to-do list, the following Parse REST API features are candi
 * `[ ] Verifying User Emails`
 * `[ ] Linking/Unlinking User Accounts (e.g., for social login, converting anonymous users)`
 
-[ ] **Roles API**:
+[x] **Roles API**:
 
-* `[ ] Full CRUD and management for Roles`
-  * `[ ] Creating Roles`
-  * `[ ] Retrieving Roles (by objectId, querying)`
-  * `[ ] Updating Roles (e.g., adding/removing users or other roles to a role's relations)`
-  * `[ ] Deleting Roles`
+* `[x] Full CRUD and management for Roles`
+  * `[x] Creating Roles`
+  * `[x] Retrieving Roles (by objectId, querying)`
+  * `[x] Updating Roles (e.g., adding/removing users or other roles to a role's relations)`
+  * `[x] Deleting Roles`
 
 [ ] **Analytics API**:
 
