@@ -191,13 +191,32 @@ parse-rs/
     ├── roles.rs       # ParseRole struct and methods (Future)
     ├── installation.rs # ParseInstallation struct and methods (Future)
     ├── push.rs        # Push Notification methods (Future)
-    ├── schema.rs      # Schema management methods (Future)
+    ├── schema.rs      # Schema management methods (Core CRUD and Fetching Implemented)
     └── util.rs        # Common utility functions, if any
 ```
 
 ## 7. Implementation Checklist
 
 ### Phase 1: Core Setup & User Authentication
+
+## 8. Development Progress & Key Achievements
+
+### May 30, 2025: Schema Management and Error Handling Enhancements
+
+* **Schema Index Deserialization:**
+  * Successfully implemented `IndexFieldType` enum (`SortOrder(i32)`, `Text(String)`, `Other(Value)`) within `src/schema.rs`.
+  * This allows the SDK to correctly deserialize schema definitions that include non-numeric index types, such as "text" for full-text search, which was a previous blocker.
+  * Updated `ParseSchema` to use `IndexFieldType` for its `indexes` field.
+
+* **Integration Test Fixes (`schema_integration_tests.rs`):**
+  * Resolved all failing tests in `tests/schema_integration_tests.rs`.
+  * Corrected error handling logic in `test_create_get_and_delete_class_schema` and `test_delete_non_empty_class_schema_fails` to accurately expect `ParseError::OtherParseError` (with appropriate codes 103 and 255) instead of `ParseError::ApiError` for certain server responses. This involved understanding the error mapping in `ParseError::from_response`.
+  * Updated debug logging for schema indexes to correctly use the new `IndexFieldType`.
+
+* **Code Quality:**
+  * Addressed compiler warnings in `tests/schema_integration_tests.rs` related to unused imports and mutable variables.
+
+* **Overall Status:** The schema management functionality is now more robust, and related integration tests are passing, marking significant progress in ensuring the SDK can handle diverse Parse Server configurations and error responses correctly.
 
 * [x] Setup project structure, `Cargo.toml` with dependencies (`tokio`,
   `reqwest`, `serde`, `serde_json`, `thiserror`, `url`).
@@ -281,7 +300,7 @@ parse-rs/
 * [ ] Consider advanced types/features:
   * [ ] `ParseInstallation` (for device registration, crucial for push notifications).
   * [ ] `ParsePush` (for sending push notifications).
-  * [ ] `ParseSchema` (for programmatically managing class schemas).
+  * [X] `ParseSchema` (for programmatically managing class schemas).
 
 ## 8. Development Updates
 
@@ -360,13 +379,13 @@ Beyond the immediate to-do list, the following Parse REST API features are candi
 
 * While `ParseCloud` covers calling functions, more advanced job management (e.g., status polling, specific job retrieval if API supports, triggering background jobs) could be added.
 
-[ ] **Schemas API**:
+[x] **Schemas API**:
 
-* `[ ] Programmatic schema management`
-  * `[ ] Fetching all schemas / specific class schema`
-  * `[ ] Creating a new class schema`
-  * `[ ] Modifying a class schema (adding/removing fields, constraints - if supported by API)`
-  * `[ ] Deleting a class schema`
+* `[x] Programmatic schema management`
+  * `[x] Fetching all schemas / specific class schema`
+  * `[x] Creating a new class schema`
+  * `[x] Modifying a class schema (adding/removing fields, constraints - if supported by API)`
+  * `[x] Deleting a class schema`
 
 [ ] **Hooks API**:
 
